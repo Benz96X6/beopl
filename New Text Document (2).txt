@@ -1,0 +1,15 @@
+wait(1)
+while true do wait(0)
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- วนลูปทุก Chest ใน workspace.Chests
+for _, chestFolder in ipairs(workspace.Chests:GetChildren()) do
+    for _, obj in ipairs(chestFolder:GetChildren()) do
+        if obj:IsA("BasePart") or obj:IsA("Model") then
+            obj:PivotTo(hrp.CFrame * CFrame.new(0, 1, 0)) -- ย้ายมาเหนือหัว 3 stud
+        end
+    end
+end
+end
