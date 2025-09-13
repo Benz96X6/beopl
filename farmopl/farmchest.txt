@@ -1,0 +1,65 @@
+local Players = game:GetService("Players")
+local Http = game:GetService("HttpService")
+local TPS = game:GetService("TeleportService")
+
+local Player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local PlaceId, JobId = game.PlaceId, game.JobId
+local Api = "https://games.roblox.com/v1/games/"
+local ServersApi = Api .. PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+
+local function WaitForHRP()
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart", 10)
+end
+
+local function ListServers(cursor)
+    local url = ServersApi .. ((cursor and "&cursor="..cursor) or "")
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not success then return nil end
+
+    local success2, decoded = pcall(function()
+        return Http:JSONDecode(response)
+    end)
+    if not success2 then return nil end
+
+    return decoded
+end
+
+local time_to_wait = 5
+
+task.spawn(function()
+    local hrp = WaitForHRP()
+    while task.wait(time_to_wait) do
+        local servers = ListServers()
+        if servers and servers.data and #servers.data > 0 then
+            local server
+            for _, s in ipairs(servers.data) do
+                if s.id and s.id ~= JobId then
+                    local playing = tonumber(s.playing) or 0
+                    local maxPlayers = tonumber(s.maxPlayers) or 0
+
+                    if playing < maxPlayers then
+                        server = s
+                        break
+                    end
+                end
+            end
+
+            if server then
+                if hrp then
+                    pcall(function()
+                        hrp.Anchored = true
+                    end)
+                end
+                print("Teleporting to server:", server.id)
+                TPS:TeleportToPlaceInstance(PlaceId, server.id, Player)
+            else
+                warn("No suitable server found this round.")
+            end
+        else
+            warn("No server data returned.")
+        end
+    end
+end)
